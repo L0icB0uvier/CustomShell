@@ -7,7 +7,7 @@ while (true)
     
     var command = Console.ReadLine();
 
-    Console.Write($"{command}: command not found");  
+    Console.WriteLine($"{command}: command not found");  
 }
 
 
