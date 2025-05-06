@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 
-Console.WriteLine("$ ");
+Console.Write("$ ");
 
 // Wait for user input
 var command = Console.ReadLine();
