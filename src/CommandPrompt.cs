@@ -30,9 +30,9 @@ public class CommandPrompt
             var commandName = commandParts[0];
             
             string commandContent = String.Empty;
-            if (commandParts.Length >= 2)
+            if (commandParts.Length > 2)
             {
-                commandContent = commandParts[1];
+                commandContent = String.Join(' ', commandParts.Skip(1));
             }
 
             if (commands.TryGetValue(commandName, out ICommandHandler? handler))
