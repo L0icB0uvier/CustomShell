@@ -1,9 +1,13 @@
 using System.Net;
 using System.Net.Sockets;
 
-Console.Write("$ ");
+while (true)
+{
+    Console.Write("$ ");
+    
+    var command = Console.ReadLine();
 
-// Wait for user input
-var command = Console.ReadLine();
+    Console.Write($"{command}: command not found");  
+}
 
-Console.Write($"{command}: command not found");
+
