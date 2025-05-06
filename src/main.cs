@@ -12,5 +12,4 @@ while (true)
         Environment.Exit(0);
     }
     Console.WriteLine($"{command}: command not found");
-    break;
 }
