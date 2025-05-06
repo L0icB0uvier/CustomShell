@@ -1,16 +1,11 @@
-using System.Net;
-using System.Net.Sockets;
+namespace Shell;
 
-while (true)
+public class Program
 {
-    Console.Write("$ ");
-    
-    var command = Console.ReadLine();
-
-    if (command == "exit 0")
+    public static void Main(string[] args)
     {
-        Environment.Exit(0);
+        CommandPrompt prompt = new CommandPrompt();
+        prompt.AddCommand("echo", new EchoCommandHandler());
+        prompt.Start();
     }
-    
-    Console.WriteLine($"{command}: command not found");
 }
