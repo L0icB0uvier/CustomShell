@@ -7,7 +7,10 @@ while (true)
     
     var command = Console.ReadLine();
 
+    if (command == "exit")
+    {
+        Environment.Exit(0);
+    }
     Console.WriteLine($"{command}: command not found");
-    Environment.Exit(0);
     break;
 }
