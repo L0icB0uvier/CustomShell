@@ -6,7 +6,7 @@
     <RootNamespace>Shell</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>Shell</AssemblyName>
+    <AssemblyName>codecrafters-shell</AssemblyName>
   </PropertyGroup>
 
 </Project>
