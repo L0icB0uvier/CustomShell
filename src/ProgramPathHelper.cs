@@ -1,16 +1,9 @@
 ﻿namespace Shell;
 
-public class TypeCommandHandler : ICommandHandler
+public class ProgramPathHelper
 {
-    public string? HandleCommand(string[] commandArguments)
+    public static string? GetProgramPath(string commandArgument)
     {
-        var commandArgument = commandArguments[0];
-        
-        if (CommandPrompt.Commands.ContainsKey(commandArgument))
-        {
-            return $"{commandArgument} is a shell builtin";
-        } 
-        
         var environmentPath = Environment.GetEnvironmentVariable("PATH");
 
         if (string.IsNullOrEmpty(environmentPath) == false)
@@ -21,11 +14,11 @@ public class TypeCommandHandler : ICommandHandler
                 var commandPath = Path.Combine(path, commandArgument);
                 if (File.Exists(commandPath))
                 {
-                    return $"{commandArgument} is {commandPath}";
+                    return commandPath;
                 }
             }
         }
-        
-        return $"{commandArgument}: not found";
+
+        return null;
     }
 }

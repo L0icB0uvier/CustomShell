@@ -1,6 +1,6 @@
-﻿namespace Shell;
+﻿namespace Shell.CommandHandlers;
 
-public class ExitCommandHandler : ICommandHandler
+public class ExitBuiltinCommandHandler : IBuiltinCommandHandler
 {
     public string? HandleCommand(string[] commandArguments)
     {

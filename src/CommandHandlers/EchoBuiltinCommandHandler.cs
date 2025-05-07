@@ -1,6 +1,6 @@
-﻿namespace Shell;
+﻿namespace Shell.CommandHandlers;
 
-public class EchoCommandHandler : ICommandHandler
+public class EchoBuiltinCommandHandler : IBuiltinCommandHandler
 {
     public string? HandleCommand(string[] commandArguments)
     {

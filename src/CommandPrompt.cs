@@ -1,10 +1,13 @@
-﻿namespace Shell;
+﻿using System.Diagnostics;
+using Shell.CommandHandlers;
+
+namespace Shell;
 
 public class CommandPrompt
 {
-    public static Dictionary<string, ICommandHandler> Commands { get; } = new Dictionary<string, ICommandHandler>();
+    public static Dictionary<string, IBuiltinCommandHandler> Commands { get; } = new Dictionary<string, IBuiltinCommandHandler>();
 
-    public void AddCommand(string command, ICommandHandler handler)
+    public static void AddCommand(string command, IBuiltinCommandHandler handler)
     {
         if (!Commands.TryAdd(command, handler))
         {
@@ -18,30 +21,53 @@ public class CommandPrompt
         {
             Console.Write("$ ");
             
+            //Read command
             var command = Console.ReadLine();
-
-            if (command == null || string.IsNullOrWhiteSpace(command))
-            {
-                continue;
-            }
+            if (string.IsNullOrWhiteSpace(command)) continue;
             
+            //Split command
             var commandParts = command.Split(' ');
             var commandName = commandParts[0];
+            var arguments = commandParts.Skip(1).ToArray();
             
-            if (Commands.TryGetValue(commandName, out ICommandHandler? handler))
-            {
-                var commandMessage = handler.HandleCommand(commandParts.Skip(1).ToArray());
-
-                if (commandMessage != null)
-                {
-                    Console.WriteLine(commandMessage);
-                }
-            }
-
-            else
-            {
-                Console.WriteLine($"{command}: command not found");
-            }
+            //Process command
+            if(TryProcessBuiltinCommand(commandName, arguments)) continue;
+            if(TryProcessExternalProgram(commandName, arguments)) continue;
+            
+            //Command not found
+            PrintCommandNotFound(commandName);
         }
+    }
+
+    private static bool TryProcessBuiltinCommand(string command, string[] arguments)
+    {
+        if (!Commands.TryGetValue(command, out IBuiltinCommandHandler? handler)) return false;
+        
+        var commandMessage = handler.HandleCommand(arguments);
+        if (commandMessage != null) Console.WriteLine(commandMessage);
+        
+        return true;
+    }
+
+    private static bool TryProcessExternalProgram(string command, string[] arguments)
+    {
+        var programPath = ProgramPathHelper.GetProgramPath(command);
+        if (string.IsNullOrEmpty(programPath)) return false;
+
+        var processStartInfo = new ProcessStartInfo
+        {
+            FileName = command,
+            Arguments = string.Join(' ', arguments),
+            WorkingDirectory = Path.GetDirectoryName(programPath)
+        };
+        
+        var process = Process.Start(processStartInfo);
+        process?.WaitForExit();
+        return true;
+    }
+
+    private static void PrintCommandNotFound(string command)
+    {
+        Console.WriteLine($"{command}: command not found");
     }
 }
