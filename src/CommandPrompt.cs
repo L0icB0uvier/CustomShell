@@ -2,11 +2,11 @@
 
 public class CommandPrompt
 {
-    private Dictionary<string, ICommandHandler> commands = new Dictionary<string, ICommandHandler>();
+    public static Dictionary<string, ICommandHandler> Commands { get; } = new Dictionary<string, ICommandHandler>();
 
     public void AddCommand(string command, ICommandHandler handler)
     {
-        if (!commands.TryAdd(command, handler))
+        if (!Commands.TryAdd(command, handler))
         {
             Console.WriteLine($"{command}: command already exists");
         }
@@ -20,25 +20,22 @@ public class CommandPrompt
             
             var command = Console.ReadLine();
 
-            if (command == "exit 0")
+            if (command == null || string.IsNullOrWhiteSpace(command))
             {
-                Environment.Exit(0);
-                return;
+                continue;
             }
-
+            
             var commandParts = command.Split(' ');
             var commandName = commandParts[0];
             
-            string commandContent = String.Empty;
-            if (commandParts.Length > 2)
+            if (Commands.TryGetValue(commandName, out ICommandHandler? handler))
             {
-                commandContent = String.Join(' ', commandParts.Skip(1));
-            }
+                var commandMessage = handler.HandleCommand(commandParts.Skip(1).ToArray());
 
-            if (commands.TryGetValue(commandName, out ICommandHandler? handler))
-            {
-                var commandMessage = handler.HandleCommand(commandContent);
-                Console.WriteLine(commandMessage);
+                if (commandMessage != null)
+                {
+                    Console.WriteLine(commandMessage);
+                }
             }
 
             else
