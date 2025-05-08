@@ -12,6 +12,7 @@ public class Program
         CommandPrompt.AddCommand("exit", new ExitBuiltinCommandHandler());
         CommandPrompt.AddCommand("type", new TypeBuiltinCommandHandler());
         CommandPrompt.AddCommand("pwd", new PwdCommandHandler());
+        CommandPrompt.AddCommand("cd", new CdCommandHandler());
         
         prompt.Start();
     }
