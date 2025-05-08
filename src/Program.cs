@@ -11,6 +11,7 @@ public class Program
         CommandPrompt.AddCommand("echo", new EchoBuiltinCommandHandler());
         CommandPrompt.AddCommand("exit", new ExitBuiltinCommandHandler());
         CommandPrompt.AddCommand("type", new TypeBuiltinCommandHandler());
+        CommandPrompt.AddCommand("pwd", new PwdCommandHandler());
         
         prompt.Start();
     }
