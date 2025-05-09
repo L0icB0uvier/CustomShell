@@ -10,7 +10,7 @@ public class CdCommandHandler : IBuiltinCommandHandler
             return $"cd: {absolutePath}: No such file or directory";
         }
 
-        Environment.CurrentDirectory = absolutePath;
+        Directory.SetCurrentDirectory(absolutePath);
         return null;
     }
 }

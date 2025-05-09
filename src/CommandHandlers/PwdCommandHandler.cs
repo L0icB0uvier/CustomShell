@@ -4,6 +4,6 @@ public class PwdCommandHandler : IBuiltinCommandHandler
 {
     public string? HandleCommand(string[] commandArguments)
     {
-        return Environment.CurrentDirectory;
+        return Directory.GetCurrentDirectory();
     }
 }
