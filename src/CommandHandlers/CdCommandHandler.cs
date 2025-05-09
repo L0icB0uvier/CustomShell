@@ -4,13 +4,22 @@ public class CdCommandHandler : IBuiltinCommandHandler
 {
     public string? HandleCommand(string[] commandArguments)
     {
-        var absolutePath = commandArguments[0];
-        if (Directory.Exists(absolutePath) == false)
+        var pathArgument = commandArguments[0];
+
+        if (pathArgument == "~")
         {
-            return $"cd: {absolutePath}: No such file or directory";
+            var homePath = Environment.GetEnvironmentVariable("HOME") ?? Environment.GetEnvironmentVariable("USERPROFILE");
+            
+            Directory.SetCurrentDirectory(homePath);
+            return null;
+        }
+        
+        if (Directory.Exists(pathArgument) == false)
+        {
+            return $"cd: {pathArgument}: No such file or directory";
         }
 
-        Directory.SetCurrentDirectory(absolutePath);
+        Directory.SetCurrentDirectory(pathArgument);
         return null;
     }
 }
