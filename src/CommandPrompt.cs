@@ -39,6 +39,64 @@ public class CommandPrompt
             PrintCommandNotFound(commandName);
         }
     }
+    
+    private string[] ParseCommand(string command)
+    {
+        string pattern = @"[^\s""']+|'([^']*)'|""([^""]*)""";
+        var matches = Regex.Matches(command, pattern);
+       
+        var tokens = ProcessMatches(matches);
+
+        return tokens;
+    }
+    
+    private static string[] ProcessMatches(MatchCollection matches)
+    {
+        List<string> tokens = new List<string>();
+        string currentToken = String.Empty;
+        int currentGroupIndex = 0;
+        
+        for (int i = 0; i < matches.Count; i++)
+        {
+            Match current = matches[i];
+
+            int groupIndex = current.Groups[2].Success ? 2 : current.Groups[1].Success ? 1 : 0;
+            
+            string value = current.Groups[groupIndex].Value;
+            
+            if (i == 0)
+            {
+                currentToken = value;
+                continue;
+            }
+            
+            Match previous = matches[i - 1];
+            int prevEnd = previous.Index + previous.Length;
+            int currStart = current.Index;
+
+            bool isAdjacent = prevEnd == currStart;
+
+            if (groupIndex == currentGroupIndex && isAdjacent)
+            {
+                currentToken += value;
+            }
+
+            else
+            {
+                tokens.Add(currentToken);
+                currentToken = value;
+                currentGroupIndex = groupIndex;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentToken))
+        {
+            tokens.Add(currentToken);
+        }
+
+        return tokens.ToArray();
+    }
+
 
     private static bool TryProcessBuiltinCommand(string command, string[] arguments)
     {
@@ -78,59 +136,6 @@ public class CommandPrompt
     private static void PrintCommandNotFound(string command)
     {
         Console.WriteLine($"{command}: command not found");
-    }
-
-    private string[] ParseCommand(string command)
-    {
-        string pattern = @"[^\s""']+|'([^']*)'";
-        var matches = Regex.Matches(command, pattern);
-       
-        var tokens = JoinAdjacentSingleQuotedWords(matches);
-
-        return tokens;
-    }
-
-    private static string[] JoinAdjacentSingleQuotedWords(MatchCollection matches)
-    {
-        List<string> tokens = new List<string>();
-        string currentToken = "";
-        
-        for (int i = 0; i < matches.Count; i++)
-        {
-            Match current = matches[i];
-            
-            string value = current.Groups[1].Success ? current.Groups[1].Value : current.Value;
-            
-            if (i == 0)
-            {
-                currentToken = value;
-                continue;
-            }
-            
-            Match previous = matches[i - 1];
-            int prevEnd = previous.Index + previous.Length;
-            int currStart = current.Index;
-
-            bool isAdjacent = prevEnd == currStart;
-
-            if (isAdjacent)
-            {
-                currentToken += value;
-            }
-
-            else
-            {
-                tokens.Add(currentToken);
-                currentToken = value;
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(currentToken))
-        {
-            tokens.Add(currentToken);
-        }
-
-        return tokens.ToArray();
     }
     
     public static bool IsLikelyFilePath(string input)
