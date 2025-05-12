@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Shell.CommandHandlers;
 
 namespace Shell;
@@ -26,8 +27,8 @@ public class CommandPrompt
             if (string.IsNullOrWhiteSpace(command)) continue;
             
             //Split command
-            var commandParts = command.Split(' ');
-            var commandName = commandParts[0];
+            var commandParts = ParseCommand(command);
+            var commandName = commandParts.First();
             var arguments = commandParts.Skip(1).ToArray();
             
             //Process command
@@ -53,11 +54,19 @@ public class CommandPrompt
     {
         var programPath = ProgramPathHelper.GetProgramPath(command);
         if (string.IsNullOrEmpty(programPath)) return false;
+        
+        //Add double quotes around arguments they are paths
+        string[] correctedArguments = new string[arguments.Length];
 
+        for (int i = 0; i < arguments.Length; i++)
+        {
+            correctedArguments[i] = IsLikelyFilePath(arguments[i])? $"\"{arguments[i]}\"" : arguments[i];
+        }
+        
         var processStartInfo = new ProcessStartInfo
         {
             FileName = command,
-            Arguments = string.Join(' ', arguments),
+            Arguments = string.Join(' ', correctedArguments),
             WorkingDirectory = Path.GetDirectoryName(programPath)
         };
         
@@ -69,5 +78,80 @@ public class CommandPrompt
     private static void PrintCommandNotFound(string command)
     {
         Console.WriteLine($"{command}: command not found");
+    }
+
+    private string[] ParseCommand(string command)
+    {
+        string pattern = @"[^\s""']+|'([^']*)'";
+        var matches = Regex.Matches(command, pattern);
+       
+        var tokens = JoinAdjacentSingleQuotedWords(matches);
+
+        return tokens;
+    }
+
+    private static string[] JoinAdjacentSingleQuotedWords(MatchCollection matches)
+    {
+        List<string> tokens = new List<string>();
+        string currentToken = "";
+        
+        for (int i = 0; i < matches.Count; i++)
+        {
+            Match current = matches[i];
+            
+            string value = current.Groups[1].Success ? current.Groups[1].Value : current.Value;
+            
+            if (i == 0)
+            {
+                currentToken = value;
+                continue;
+            }
+            
+            Match previous = matches[i - 1];
+            int prevEnd = previous.Index + previous.Length;
+            int currStart = current.Index;
+
+            bool isAdjacent = prevEnd == currStart;
+
+            if (isAdjacent)
+            {
+                currentToken += value;
+            }
+
+            else
+            {
+                tokens.Add(currentToken);
+                currentToken = value;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentToken))
+        {
+            tokens.Add(currentToken);
+        }
+
+        return tokens.ToArray();
+    }
+    
+    public static bool IsLikelyFilePath(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return false;
+        
+        // Check if file exists
+        if (File.Exists(input) || Directory.Exists(input))
+            return true;
+
+        // Check for typical path indicators (heuristics)
+        bool hasDriveLetter = Regex.IsMatch(input, @"^[a-zA-Z]:[\\/]");
+        bool hasSlashes = input.Contains("\\") || input.Contains("/");
+        bool hasExtension = Path.HasExtension(input);
+
+        // Return true if at least 2 of the 3 indicators are true
+        int score = 0;
+        if (hasDriveLetter) score++;
+        if (hasSlashes) score++;
+        if (hasExtension) score++;
+
+        return score >= 2;
     }
 }
