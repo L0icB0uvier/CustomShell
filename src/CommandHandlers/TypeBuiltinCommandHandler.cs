@@ -11,7 +11,7 @@ public class TypeBuiltinCommandHandler : IBuiltinCommandHandler
             return $"{commandArgument} is a shell builtin";
         }
 
-        var programPath = ProgramPathHelper.GetProgramPath(commandArgument);
+        var programPath = PathHelper.GetProgramPath(commandArgument);
 
         return string.IsNullOrEmpty(programPath) ? 
             $"{commandArgument}: not found" : 

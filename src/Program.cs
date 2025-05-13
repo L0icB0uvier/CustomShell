@@ -6,6 +6,9 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        /*RegexTesting regexTesting = new RegexTesting();
+        regexTesting.Start();*/
+        
         CommandPrompt prompt = new CommandPrompt();
         
         CommandPrompt.AddCommand("echo", new EchoBuiltinCommandHandler());
