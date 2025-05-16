@@ -40,9 +40,9 @@ public class CommandPrompt
         }
     }
     
-    private static bool TryProcessBuiltinCommand(string command, string[] arguments)
+    private static bool TryProcessBuiltinCommand(Token command, Token[] arguments)
     {
-        if (!Commands.TryGetValue(command, out IBuiltinCommandHandler? handler)) return false;
+        if (!Commands.TryGetValue(command.TokenValue, out IBuiltinCommandHandler? handler)) return false;
         
         var commandMessage = handler.HandleCommand(arguments);
         if (commandMessage != null) Console.WriteLine(commandMessage);
@@ -50,9 +50,9 @@ public class CommandPrompt
         return true;
     }
 
-    private static bool TryProcessExternalProgram(string command, string[] arguments)
+    private static bool TryProcessExternalProgram(Token command, Token[] arguments)
     {
-        var programPath = PathHelper.GetProgramPath(command);
+        var programPath = PathHelper.GetProgramPath(command.TokenValue);
         if (string.IsNullOrEmpty(programPath)) return false;
         
         //Add double quotes around arguments they are paths
@@ -60,23 +60,39 @@ public class CommandPrompt
 
         for (int i = 0; i < arguments.Length; i++)
         {
-            correctedArguments[i] = PathHelper.IsLikelyFilePath(arguments[i])? $"\"{arguments[i]}\"" : arguments[i];
+            string correctedValue;
+            if (arguments[i].TokenValue.Contains("\""))
+            {
+                correctedValue = $"{arguments[i].TokenValue}";
+            }
+            else
+            {
+                correctedValue = PathHelper.IsLikelyFilePath(arguments[i].TokenValue)
+                    ? $"\"{arguments[i].TokenValue}\""
+                    : arguments[i].TokenValue;
+            }
+            correctedArguments[i] = correctedValue;
         }
+        
+        string argumentsString = string.Join(' ', correctedArguments);
         
         var processStartInfo = new ProcessStartInfo
         {
-            FileName = command,
-            Arguments = string.Join(' ', correctedArguments),
+            FileName = command.TokenValue,
             WorkingDirectory = Path.GetDirectoryName(programPath)
         };
+        
+        foreach (var correctedArgument in arguments)
+        {
+            processStartInfo.ArgumentList.Add(correctedArgument.TokenValue);
+        }
         
         var process = Process.Start(processStartInfo);
         process?.WaitForExit();
         return true;
     }
 
-    private static void PrintCommandNotFound(string command)
-    {
-        Console.WriteLine($"{command}: command not found");
+    private static void PrintCommandNotFound(Token command){
+        Console.WriteLine($"{command.TokenValue}: command not found");
     }
 }

@@ -2,9 +2,9 @@
 
 public class EchoBuiltinCommandHandler : IBuiltinCommandHandler
 {
-    public string? HandleCommand(string[] commandArguments)
+    public string? HandleCommand(Token[] commandArguments)
     {
-        var echoMessage = string.Join(" ",commandArguments);
+        var echoMessage = string.Join(" ",commandArguments.Select(x => x.TokenValue));
         return echoMessage;
     }
 }

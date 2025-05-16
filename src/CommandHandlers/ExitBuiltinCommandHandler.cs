@@ -2,7 +2,7 @@
 
 public class ExitBuiltinCommandHandler : IBuiltinCommandHandler
 {
-    public string? HandleCommand(string[] commandArguments)
+    public string? HandleCommand(Token[] commandArguments)
     {
         Environment.Exit(0);
         return null;

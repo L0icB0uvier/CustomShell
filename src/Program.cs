@@ -2,13 +2,22 @@ using Shell.CommandHandlers;
 
 namespace Shell;
 
-public class Program
+public static class Program
 {
     public static void Main(string[] args)
     {
-        /*RegexTesting regexTesting = new RegexTesting();
-        regexTesting.Start();*/
-        
+        //StartRegexTesting();
+        StartCommandPrompt();
+    }
+
+    private static void StartRegexTesting()
+    {
+        RegexTesting regexTesting = new RegexTesting();
+        regexTesting.Start();
+    }
+
+    private static void StartCommandPrompt()
+    {
         CommandPrompt prompt = new CommandPrompt();
         
         CommandPrompt.AddCommand("echo", new EchoBuiltinCommandHandler());

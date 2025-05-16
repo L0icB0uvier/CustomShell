@@ -43,6 +43,6 @@ public static class PathHelper
         if (hasSlashes) score++;
         if (hasExtension) score++;
 
-        return score >= 2;
+        return score >= 1;
     }
 }
