@@ -6,16 +6,9 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        //StartRegexTesting();
         StartCommandPrompt();
     }
-
-    private static void StartRegexTesting()
-    {
-        RegexTesting regexTesting = new RegexTesting();
-        regexTesting.Start();
-    }
-
+    
     private static void StartCommandPrompt()
     {
         CommandPrompt prompt = new CommandPrompt();

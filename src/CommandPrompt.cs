@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
-using System.Text.RegularExpressions;
 using Shell.CommandHandlers;
+using Shell.Tokens;
 
 namespace Shell;
 
@@ -30,16 +30,60 @@ public class CommandPrompt
             var commandParts = CommandParser.ParseCommand(command);
             var commandName = commandParts.First();
             var arguments = commandParts.Skip(1).ToArray();
-            
-            //Process command
-            if(TryProcessBuiltinCommand(commandName, arguments)) continue;
-            if(TryProcessExternalProgram(commandName, arguments)) continue;
-            
-            //Command not found
-            PrintCommandNotFound(commandName);
+
+            if (arguments.Length > 0 && arguments[^1].TokenType == TokenType.Redirect)
+            {
+                var redirectToken = (RedirectToken)arguments[^1];
+                using (var writer = new StreamWriter(redirectToken.RedirectPath))
+                {
+                    TextWriter originalOut;
+                    switch (redirectToken.RedirectType)
+                    {
+                        case RedirectType.StandardError:
+                            originalOut = Console.Error;
+                            Console.SetError(writer);
+                            break;
+                        case RedirectType.StandardOutput:
+                        default:
+                            originalOut = Console.Out;
+                            Console.SetOut(writer);
+                            break;
+                    }
+
+                    arguments = arguments.Where(a => a.TokenType != TokenType.Redirect).ToArray();
+                    
+                    ProcessCommand(commandName, arguments);
+                    
+                    switch (redirectToken.RedirectType)
+                    {
+                        case RedirectType.StandardError:
+                            Console.SetError(originalOut);
+                            break;
+                        case RedirectType.StandardOutput:
+                        default:
+                            Console.SetOut(originalOut);
+                            break;
+                    }
+                }
+            }
+
+            else
+            {
+                ProcessCommand(commandName, arguments);;
+            }
         }
     }
-    
+
+    private static void ProcessCommand(Token commandName, Token[] arguments)
+    {
+        //Process command
+        if(TryProcessBuiltinCommand(commandName, arguments)) return;
+        if(TryProcessExternalProgram(commandName, arguments)) return;
+                    
+        //Command not found
+        PrintCommandNotFound(commandName);
+    }
+
     private static bool TryProcessBuiltinCommand(Token command, Token[] arguments)
     {
         if (!Commands.TryGetValue(command.TokenValue, out IBuiltinCommandHandler? handler)) return false;
@@ -57,6 +101,8 @@ public class CommandPrompt
         
         //Add double quotes around arguments they are paths
         string[] correctedArguments = new string[arguments.Length];
+        
+        if (correctedArguments == null) throw new ArgumentNullException(nameof(correctedArguments));
 
         for (int i = 0; i < arguments.Length; i++)
         {
@@ -74,12 +120,13 @@ public class CommandPrompt
             correctedArguments[i] = correctedValue;
         }
         
-        string argumentsString = string.Join(' ', correctedArguments);
         
         var processStartInfo = new ProcessStartInfo
         {
             FileName = command.TokenValue,
-            WorkingDirectory = Path.GetDirectoryName(programPath)
+            WorkingDirectory = Path.GetDirectoryName(programPath),
+            RedirectStandardOutput = true,
+            UseShellExecute = false
         };
         
         foreach (var correctedArgument in arguments)
@@ -88,7 +135,18 @@ public class CommandPrompt
         }
         
         var process = Process.Start(processStartInfo);
+        string? output = process?.StandardOutput.ReadToEnd();
         process?.WaitForExit();
+        
+        if (output != null && output.EndsWith(Environment.NewLine))
+        {
+            Console.Write(output);
+        }
+        else
+        {
+            Console.WriteLine(output);       
+        }
+        
         return true;
     }
 

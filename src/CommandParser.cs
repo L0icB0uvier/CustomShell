@@ -7,6 +7,12 @@ public static class CommandParser
 {
     public static Token[] ParseCommand(string command)
     {
+        const string redirectPattern = @"
+                (?<Redirect>
+                    [0-2]?>\s[^\s]+
+                )
+            ";
+        
         const string unquotedPattern = @"
                 (?<NoQuotes>
                         (?:\\.
@@ -36,8 +42,9 @@ public static class CommandParser
                     (?:\\[\\""\&]|[^\s""])*         #Look for any non space or non escaped double quote at the end
                 )                                   #Close the capture group
             ";
+
         
-        string pattern = $"{unquotedPattern}|{singleQuotesPattern}|{doubleQuotesPattern}";
+        string pattern = $"{redirectPattern}|{unquotedPattern}|{singleQuotesPattern}|{doubleQuotesPattern}";
         var matches = Regex.Matches(command, pattern, RegexOptions.IgnorePatternWhitespace);
         var tokens = ProcessMatches(matches);
         return tokens;
@@ -61,6 +68,10 @@ public static class CommandParser
 
             switch (tokenType)
             {
+                case TokenType.Redirect:
+                    token = new RedirectToken(tokenType, tokenValue);
+                    tokens.Add(token);
+                    break;
                 case TokenType.NoQuotes:
                     token = new PlainTextToken(tokenType, tokenValue);
                     tokens.Add(token);
@@ -85,6 +96,9 @@ public static class CommandParser
 
     private static TokenType GetTokenType(Match match)
     {
+        if (match.Groups.ContainsKey("Redirect") && match.Groups["Redirect"].Success)
+            return TokenType.Redirect;
+        
         if (match.Groups.ContainsKey("DoubleQuotes") && match.Groups["DoubleQuotes"].Success)
             return TokenType.DoubleQuotes;
         
