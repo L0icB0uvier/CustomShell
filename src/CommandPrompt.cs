@@ -126,6 +126,7 @@ public class CommandPrompt
             FileName = command.TokenValue,
             WorkingDirectory = Path.GetDirectoryName(programPath),
             RedirectStandardOutput = true,
+            RedirectStandardError = true,
             UseShellExecute = false
         };
         
@@ -136,15 +137,32 @@ public class CommandPrompt
         
         var process = Process.Start(processStartInfo);
         string? output = process?.StandardOutput.ReadToEnd();
+        string? error = process?.StandardError.ReadToEnd();
+        
         process?.WaitForExit();
         
-        if (output != null && output.EndsWith(Environment.NewLine))
+        if (string.IsNullOrEmpty(output) == false)
         {
-            Console.Write(output);
+            if (output.EndsWith(Environment.NewLine))
+            {
+                Console.Write(output);
+            }
+            else
+            {
+                Console.WriteLine(output);       
+            }
         }
-        else
+
+        if (string.IsNullOrEmpty(error) == false)
         {
-            Console.WriteLine(output);       
+            if (error.EndsWith(Environment.NewLine))
+            {
+                Console.Error.Write(error);
+            }
+            else
+            {
+                Console.Error.WriteLine(error);       
+            }
         }
         
         return true;
