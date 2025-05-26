@@ -7,7 +7,7 @@ namespace Shell;
 public class CommandPrompt
 {
     public static Dictionary<string, IBuiltinCommandHandler> Commands { get; } = new Dictionary<string, IBuiltinCommandHandler>();
-
+    
     public static void AddCommand(string command, IBuiltinCommandHandler handler)
     {
         if (!Commands.TryAdd(command, handler))
@@ -34,92 +34,81 @@ public class CommandPrompt
             if (arguments.Length > 0 && arguments[^1].TokenType == TokenType.Redirect)
             {
                 var redirectToken = (RedirectToken)arguments[^1];
-                using (var writer = new StreamWriter(redirectToken.RedirectPath))
+                var appendRedirect = redirectToken.RedirectType 
+                    is RedirectType.AppendOutput 
+                    or RedirectType.AppendError;
+                
+                using (var redirectWriter = new StreamWriter(redirectToken.RedirectPath, appendRedirect))
                 {
-                    TextWriter originalOut;
-                    switch (redirectToken.RedirectType)
-                    {
-                        case RedirectType.StandardError:
-                            originalOut = Console.Error;
-                            Console.SetError(writer);
-                            break;
-                        case RedirectType.StandardOutput:
-                        default:
-                            originalOut = Console.Out;
-                            Console.SetOut(writer);
-                            break;
-                    }
+                    var redirectError =
+                        redirectToken.RedirectType is RedirectType.StandardError or RedirectType.AppendError;
+                    
+                    TextWriter originalWriter = redirectError ? Console.Error : Console.Out;
 
+                    RedirectOutput(redirectWriter, redirectError);
+                    
                     arguments = arguments.Where(a => a.TokenType != TokenType.Redirect).ToArray();
                     
-                    ProcessCommand(commandName, arguments);
+                    var commandOutputs = ProcessCommand(commandName, arguments);
                     
-                    switch (redirectToken.RedirectType)
-                    {
-                        case RedirectType.StandardError:
-                            Console.SetError(originalOut);
-                            break;
-                        case RedirectType.StandardOutput:
-                        default:
-                            Console.SetOut(originalOut);
-                            break;
-                    }
+                    PrintOutput(commandOutputs);
+                    
+                    RedirectOutput(originalWriter, redirectError);
                 }
             }
 
             else
             {
-                ProcessCommand(commandName, arguments);;
+                var output = ProcessCommand(commandName, arguments);
+                PrintOutput(output);
             }
         }
     }
 
-    private static void ProcessCommand(Token commandName, Token[] arguments)
+    private static void RedirectOutput(TextWriter writer, bool redirectError)
     {
-        //Process command
-        if(TryProcessBuiltinCommand(commandName, arguments)) return;
-        if(TryProcessExternalProgram(commandName, arguments)) return;
-                    
-        //Command not found
-        PrintCommandNotFound(commandName);
+        if (redirectError)
+        {
+            Console.SetError(writer);
+        }
+
+        else
+        {
+            Console.SetOut(writer);
+        }
     }
 
-    private static bool TryProcessBuiltinCommand(Token command, Token[] arguments)
+    private static CommandOutput[]? ProcessCommand(Token commandName, Token[] arguments)
     {
-        if (!Commands.TryGetValue(command.TokenValue, out IBuiltinCommandHandler? handler)) return false;
+        //Process command
+        if(TryProcessBuiltinCommand(commandName, arguments, out var builtinOutput)) return builtinOutput;
+        if(TryProcessExternalProgram(commandName, arguments,out var externalProgramOutput)) return externalProgramOutput;
+                    
+        //Command not found
+        return [PrintCommandNotFound(commandName)];
+    }
+    
+    private static bool TryProcessBuiltinCommand(Token command, Token[] arguments, out CommandOutput[]? output)
+    {
+        if (!Commands.TryGetValue(command.TokenValue, out IBuiltinCommandHandler? handler))
+        {
+            output = null;
+            return false;
+        }
         
-        var commandMessage = handler.HandleCommand(arguments);
-        if (commandMessage != null) Console.WriteLine(commandMessage);
-        
+        output = handler.HandleCommand(arguments);
         return true;
     }
 
-    private static bool TryProcessExternalProgram(Token command, Token[] arguments)
+    private static bool TryProcessExternalProgram(Token command, Token[] arguments, out CommandOutput[]? output)
     {
         var programPath = PathHelper.GetProgramPath(command.TokenValue);
-        if (string.IsNullOrEmpty(programPath)) return false;
         
-        //Add double quotes around arguments they are paths
-        string[] correctedArguments = new string[arguments.Length];
-        
-        if (correctedArguments == null) throw new ArgumentNullException(nameof(correctedArguments));
-
-        for (int i = 0; i < arguments.Length; i++)
+        if (string.IsNullOrEmpty(programPath))
         {
-            string correctedValue;
-            if (arguments[i].TokenValue.Contains("\""))
-            {
-                correctedValue = $"{arguments[i].TokenValue}";
-            }
-            else
-            {
-                correctedValue = PathHelper.IsLikelyFilePath(arguments[i].TokenValue)
-                    ? $"\"{arguments[i].TokenValue}\""
-                    : arguments[i].TokenValue;
-            }
-            correctedArguments[i] = correctedValue;
+            output = null;
+            return false;
         }
-        
         
         var processStartInfo = new ProcessStartInfo
         {
@@ -130,45 +119,72 @@ public class CommandPrompt
             UseShellExecute = false
         };
         
-        foreach (var correctedArgument in arguments)
+        foreach (var argumentToken in arguments)
         {
-            processStartInfo.ArgumentList.Add(correctedArgument.TokenValue);
+            processStartInfo.ArgumentList.Add(argumentToken.TokenValue);
         }
         
         var process = Process.Start(processStartInfo);
-        string? output = process?.StandardOutput.ReadToEnd();
-        string? error = process?.StandardError.ReadToEnd();
+        
         
         process?.WaitForExit();
         
-        if (string.IsNullOrEmpty(output) == false)
+        string? standardOutput = process?.StandardOutput.ReadToEnd();
+        string? errorOutput = process?.StandardError.ReadToEnd();
+
+        var commandOutputs = new List<CommandOutput>();
+
+        if (string.IsNullOrEmpty(standardOutput) == false)
         {
-            if (output.EndsWith(Environment.NewLine))
-            {
-                Console.Write(output);
-            }
-            else
-            {
-                Console.WriteLine(output);       
-            }
+            commandOutputs.Add(new CommandOutput(standardOutput));
         }
 
-        if (string.IsNullOrEmpty(error) == false)
+        if (string.IsNullOrEmpty(errorOutput) == false)
         {
-            if (error.EndsWith(Environment.NewLine))
-            {
-                Console.Error.Write(error);
-            }
-            else
-            {
-                Console.Error.WriteLine(error);       
-            }
+            commandOutputs.Add(new CommandOutput(errorOutput, true));       
         }
+        output = commandOutputs.Count > 0 ? commandOutputs.ToArray() : null;
         
         return true;
     }
 
-    private static void PrintCommandNotFound(Token command){
-        Console.WriteLine($"{command.TokenValue}: command not found");
+    private static CommandOutput PrintCommandNotFound(Token command){
+       return new CommandOutput($"{command.TokenValue}: command not found",true);
+    }
+
+    private static void PrintOutput(CommandOutput[]? commandOutputs)
+    {
+        if(commandOutputs == null) return;
+        
+        foreach (var output in commandOutputs)
+        {
+            if (output.OutputText.EndsWith(Environment.NewLine))
+            {
+                if (output.IsError)
+                {
+                    Console.Error.Write(output.OutputText);
+                }
+
+                else
+                {
+                    Console.Write(output.OutputText);
+                }
+            }
+
+            else
+            {
+                if (output.IsError)
+                {
+                    Console.Error.WriteLine(output.OutputText);
+                }
+
+                else
+                {
+                    Console.WriteLine(output.OutputText);
+                }
+            }
+        }
+
+        
     }
 }

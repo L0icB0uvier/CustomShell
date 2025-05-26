@@ -2,8 +2,8 @@
 
 public class PwdCommandHandler : IBuiltinCommandHandler
 {
-    public string? HandleCommand(Token[] commandArguments)
+    public CommandOutput[]? HandleCommand(Token[] commandArguments)
     {
-        return Directory.GetCurrentDirectory();
+        return [new CommandOutput(Directory.GetCurrentDirectory())];
     }
 }

@@ -4,4 +4,6 @@ public enum RedirectType
 {
     StandardOutput,
     StandardError,
+    AppendOutput,
+    AppendError
 }

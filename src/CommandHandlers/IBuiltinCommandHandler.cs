@@ -2,5 +2,5 @@
 
 public interface IBuiltinCommandHandler
 {
-    public string? HandleCommand(Token[] commandArguments);
+    public CommandOutput[]? HandleCommand(Token[] commandArguments);
 }

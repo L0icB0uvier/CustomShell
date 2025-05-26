@@ -9,7 +9,7 @@ public static class CommandParser
     {
         const string redirectPattern = @"
                 (?<Redirect>
-                    [0-2]?>\s[^\s]+
+                    [0-2]?>>?\s[^\s]+
                 )
             ";
         

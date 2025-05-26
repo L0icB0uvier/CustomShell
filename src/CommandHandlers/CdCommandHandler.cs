@@ -2,7 +2,7 @@
 
 public class CdCommandHandler : IBuiltinCommandHandler
 {
-    public string? HandleCommand(Token[] commandArguments)
+    public CommandOutput[]? HandleCommand(Token[] commandArguments)
     {
         var pathArgument = commandArguments[0];
 
@@ -16,7 +16,7 @@ public class CdCommandHandler : IBuiltinCommandHandler
         
         if (Directory.Exists(pathArgument.TokenValue) == false)
         {
-            return $"cd: {pathArgument.TokenValue}: No such file or directory";
+            return [new CommandOutput($"cd: {pathArgument.TokenValue}: No such file or directory", true)];
         }
 
         Directory.SetCurrentDirectory(pathArgument.TokenValue);

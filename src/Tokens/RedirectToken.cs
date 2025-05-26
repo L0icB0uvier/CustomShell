@@ -18,6 +18,8 @@ public class RedirectToken : Token
         {
             ">" or "1>" => RedirectType.StandardOutput,
             "2>" => RedirectType.StandardError,
+            ">>" or "1>>"  => RedirectType.AppendOutput,
+            "2>>" => RedirectType.AppendError,
             _ => RedirectType.StandardOutput
         };
     }
